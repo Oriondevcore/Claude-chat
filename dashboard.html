@@ -16,7 +16,7 @@
         .brand { padding: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
         .logo-img { height: 35px; border-radius: 4px; }
         .brand-text { font-size: 18px; font-weight: 800; letter-spacing: 1px; }
-        .menu { flex: 1; padding: 20px 0; }
+        .menu { flex: 1; padding: 20px 0; overflow-y: auto; }
         .menu-item { 
             padding: 15px 30px; 
             cursor: pointer; 
@@ -29,10 +29,14 @@
         }
         .menu-item:hover { background: rgba(255,255,255,0.05); color: white; }
         .menu-item.active { background: rgba(255,255,255,0.1); border-left-color: var(--accent); color: white; font-weight: 600; }
+        
+        /* AI Feature Badge in Menu */
+        .ai-badge { margin-left: auto; font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #fbbf24; }
+
         .sidebar-footer { padding: 20px; font-size: 0.75rem; color: rgba(255,255,255,0.4); text-align: center; border-top: 1px solid rgba(255,255,255,0.1); }
 
         /* Main Area */
-        .main { flex: 1; padding: 30px; overflow-y: auto; }
+        .main { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         h2 { font-size: 26px; font-weight: 700; color: var(--primary); margin: 0; }
         
@@ -148,6 +152,52 @@
         }
         .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: var(--primary); }
 
+        /* AI Tools Styling */
+        .ai-tool-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-weight: 600; margin-bottom: 8px; color: #2c3e50; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .form-textarea { min-height: 120px; resize: vertical; }
+        .ai-result-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #334155;
+            display: none;
+        }
+        .ai-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .ai-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
         .loader { display: none; text-align: center; padding: 50px; color: #bdc3c7; }
         .empty-state { text-align: center; padding: 50px; color: #7f8c8d; font-style: italic; }
 
@@ -199,6 +249,17 @@
             <div class="menu-item" onclick="loadTab('ANALYTICS', 'Analytics')">
                 <i class="fas fa-chart-line"></i> <span>Analytics</span>
             </div>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 10px 20px;"></div>
+            <div style="padding: 10px 30px; font-size: 0.75rem; color: #64748b; font-weight: bold;">AI TOOLS</div>
+
+            <div class="menu-item" onclick="loadTab('ITINERARY', 'Itinerary Planner')">
+                <i class="fas fa-map-marked-alt"></i> <span>Itinerary Planner</span> <span class="ai-badge">AI</span>
+            </div>
+            <div class="menu-item" onclick="loadTab('RESPONSE', 'Response Assistant')">
+                <i class="fas fa-comment-dots"></i> <span>Response Assistant</span> <span class="ai-badge">AI</span>
+            </div>
+
             <div class="menu-item" onclick="loadTab('SYSTEM', 'System Health')">
                 <i class="fas fa-heartbeat"></i> <span>System Health</span>
             </div>
@@ -212,7 +273,7 @@
     <div class="main">
         <header>
             <h2 id="page-title">Dining Bookings</h2>
-            <div class="btn-group">
+            <div class="btn-group" id="header-actions">
                 <button class="btn" onclick="fetchData()"><i class="fas fa-sync-alt"></i> Refresh</button>
                 <button class="btn" onclick="toggleFilter()"><i class="fas fa-filter"></i> <span id="filter-text">Show All</span></button>
             </div>
@@ -220,6 +281,7 @@
 
         <div id="health-section"></div>
         <div id="analytics-section"></div>
+        <div id="ai-tools-section"></div>
 
         <div class="loader" id="loader"><i class="fas fa-circle-notch fa-spin"></i> Loading data...</div>
         <div class="grid" id="data-grid"></div>
@@ -264,14 +326,29 @@
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
             
-            // Clear sections
+            // Reset sections
             document.getElementById('health-section').innerHTML = '';
             document.getElementById('analytics-section').innerHTML = '';
+            document.getElementById('ai-tools-section').innerHTML = '';
+            document.getElementById('data-grid').innerHTML = '';
             
+            // Show/Hide Header Actions
+            const headerActions = document.getElementById('header-actions');
+            if (tabName === 'ITINERARY' || tabName === 'RESPONSE' || tabName === 'SYSTEM' || tabName === 'ANALYTICS') {
+                headerActions.style.display = 'none';
+            } else {
+                headerActions.style.display = 'flex';
+            }
+
+            // Route Logic
             if (tabName === 'ANALYTICS') {
                 loadAnalytics();
             } else if (tabName === 'SYSTEM') {
                 loadSystemHealth();
+            } else if (tabName === 'ITINERARY') {
+                renderItineraryTool();
+            } else if (tabName === 'RESPONSE') {
+                renderResponseTool();
             } else {
                 fetchData();
             }
@@ -283,6 +360,7 @@
             fetchData();
         }
 
+        // --- DATA FETCHING ---
         async function fetchData() {
             const grid = document.getElementById('data-grid');
             const loader = document.getElementById('loader');
@@ -318,9 +396,6 @@
 
             dataRows.forEach((row, idx) => {
                 const statusCol = getStatusCol(currentTab);
-                // Adjust for 0-based indexing if your statusCol helper assumes 0-based
-                // My logic in Code.gs used 0-based for statusCol. 
-                // However, the provided getStatusCol in Code.gs returns -1 if not found.
                 const status = statusCol >= 0 && row[statusCol] ? row[statusCol].toLowerCase() : 'open';
                 const statusClass = status.includes('complete') || status.includes('confirmed') ? 'completed' : 
                                    status.includes('urgent') ? 'urgent' : 'open';
@@ -409,6 +484,100 @@
             }
         }
 
+        // --- AI TOOLS ---
+        function renderItineraryTool() {
+            const container = document.getElementById('ai-tools-section');
+            container.innerHTML = `
+                <div class="ai-tool-container">
+                    <h3 style="margin-bottom:20px; color:#2c3e50;"><i class="fas fa-map-marked-alt" style="color:#6366f1"></i> Guest Itinerary Planner</h3>
+                    <div class="form-group">
+                        <label class="form-label">Guest Interests</label>
+                        <input type="text" id="ai-interests" class="form-input" placeholder="e.g. Beaches, History, Food, Kids activities...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Duration (Days)</label>
+                        <select id="ai-days" class="form-select">
+                            <option value="1">1 Day</option>
+                            <option value="2">2 Days</option>
+                            <option value="3">3 Days</option>
+                            <option value="5">5 Days</option>
+                            <option value="7">1 Week</option>
+                        </select>
+                    </div>
+                    <button class="ai-btn" onclick="generateItinerary()"><i class="fas fa-magic"></i> Generate Plan</button>
+                    <div id="ai-result" class="ai-result-box"></div>
+                </div>
+            `;
+        }
+
+        function renderResponseTool() {
+            const container = document.getElementById('ai-tools-section');
+            container.innerHTML = `
+                <div class="ai-tool-container">
+                    <h3 style="margin-bottom:20px; color:#2c3e50;"><i class="fas fa-comment-dots" style="color:#6366f1"></i> Staff Response Assistant</h3>
+                    <div class="form-group">
+                        <label class="form-label">Guest Name</label>
+                        <input type="text" id="ai-guest-name" class="form-input" placeholder="Guest Name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Situation / Request</label>
+                        <textarea id="ai-situation" class="form-textarea" placeholder="e.g. Guest is unhappy about street noise, wants a room change but we are fully booked."></textarea>
+                    </div>
+                    <button class="ai-btn" onclick="generateResponse()"><i class="fas fa-pen-fancy"></i> Draft Response</button>
+                    <div id="ai-result" class="ai-result-box"></div>
+                </div>
+            `;
+        }
+
+        async function generateItinerary() {
+            const interests = document.getElementById('ai-interests').value;
+            const days = document.getElementById('ai-days').value;
+            const resultBox = document.getElementById('ai-result');
+            
+            if(!interests) { alert("Please enter guest interests"); return; }
+            
+            resultBox.style.display = 'block';
+            resultBox.innerText = "✨ Gemini is creating a plan...";
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "plan_itinerary", interests: interests, days: days })
+                });
+                const json = await response.json();
+                if(json.status === 'success') {
+                    resultBox.innerText = json.plan;
+                } else {
+                    resultBox.innerText = "Error generating plan.";
+                }
+            } catch(e) { resultBox.innerText = "Connection error."; }
+        }
+
+        async function generateResponse() {
+            const name = document.getElementById('ai-guest-name').value;
+            const details = document.getElementById('ai-situation').value;
+            const resultBox = document.getElementById('ai-result');
+            
+            if(!details) { alert("Please describe the situation"); return; }
+            
+            resultBox.style.display = 'block';
+            resultBox.innerText = "✨ Gemini is drafting response options...";
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "suggest_response", guestName: name || "Guest", details: details })
+                });
+                const json = await response.json();
+                if(json.status === 'success') {
+                    resultBox.innerText = json.suggestion;
+                } else {
+                    resultBox.innerText = "Error generating response.";
+                }
+            } catch(e) { resultBox.innerText = "Connection error."; }
+        }
+
+        // --- ANALYTICS & HEALTH ---
         async function loadAnalytics() {
             const section = document.getElementById('analytics-section');
             section.innerHTML = '<div class="loader"><i class="fas fa-circle-notch fa-spin"></i> Loading analytics...</div>';
@@ -435,7 +604,7 @@
                 <div class="analytics-grid">
                     <div class="stat-card">
                         <div class="stat-value">${data.total || 0}</div>
-                        <div class="stat-label">Total Requests (7 days)</div>
+                        <div class="stat-label">Total Requests</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value">${data.open || 0}</div>
@@ -462,7 +631,6 @@
                 </div>
             `;
 
-            // Render charts
             new Chart(document.getElementById('typeChart'), {
                 type: 'pie',
                 data: {
