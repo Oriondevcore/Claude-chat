@@ -385,6 +385,26 @@
             }
         }
 
+        // --- HELPER: Format dates nicely ---
+        function formatCheckInDate(dateString) {
+            try {
+                if (!dateString) return "N/A";
+                // If it contains 'T', implies ISO format. 
+                // We trust the browser to parse it, but strip time.
+                const d = new Date(dateString);
+                if (isNaN(d.getTime())) return dateString; // Return original if parse fails
+                
+                return d.toLocaleDateString('en-ZA', { 
+                    weekday: 'short', 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+
         function renderData(rows) {
             const grid = document.getElementById('data-grid');
             if (!rows || rows.length < 2) {
@@ -400,6 +420,7 @@
                 const statusClass = status.includes('complete') || status.includes('confirmed') ? 'completed' : 
                                    status.includes('urgent') ? 'urgent' : 'open';
                 
+                // Creation Timestamp
                 const dateStr = row[0] ? new Date(row[0]).toLocaleString('en-ZA', {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                 }) : "N/A";
@@ -429,9 +450,12 @@
                     `;
                 }
                 else if (currentTab === 'HOTEL RESERVATIONS') {
+                    // row[6] is Check-in date. We format it here.
+                    const cleanDate = formatCheckInDate(row[6]);
+                    
                     bodyHtml = `
                         <div class="main-info"><i class="fas fa-suitcase icon-box"></i> ${row[1]}</div>
-                        <div class="sub-info"><i class="far fa-calendar-alt icon-box"></i> ${row[6]} (${row[7]} nights)</div>
+                        <div class="sub-info"><i class="far fa-calendar-alt icon-box"></i> ${cleanDate} (${row[7]} nights)</div>
                         <div class="sub-info"><i class="fas fa-phone icon-box"></i> ${row[2]}</div>
                         <div class="meta-info">Pax: ${row[5]} | Email: ${row[3]}</div>
                     `;
